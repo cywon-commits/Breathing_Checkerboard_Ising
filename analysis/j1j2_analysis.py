@@ -14,6 +14,7 @@ from lib import *
 from analyze import crossing
 
 D = os.path.join(ROOT, "data", "j1j2")
+LO = float(os.environ.get("BINDER_LO", "-0.6"))   # lower U bound for accepted crossings
 
 
 def load_group(g, h, eps, Lb):
@@ -36,11 +37,11 @@ def analyse(g, h, eps):
     Ls = sorted(runs)
     for L1, L2 in zip(Ls[:-1], Ls[1:]):
         T1, T2 = runs[L1]["T"], runs[L2]["T"]
-        x0 = crossing(T1, U[L1][0], T2, U[L2][0])
+        x0 = crossing(T1, U[L1][0], T2, U[L2][0], lo=LO)
         xs = []
         for k in range(nb):
             m1 = (runs[L1]["B"].sum(0) - runs[L1]["B"][k]) / (nb - 1); m2 = (runs[L2]["B"].sum(0) - runs[L2]["B"][k]) / (nb - 1)
-            xs.append(crossing(T1, uf(m1), T2, uf(m2)))
+            xs.append(crossing(T1, uf(m1), T2, uf(m2), lo=LO))
         xs = np.array(xs)
         err = float(np.sqrt((nb - 1) / nb * np.nansum((xs - np.nanmean(xs)) ** 2))) if np.isfinite(x0) else np.nan
         res["crossings"].append(dict(L1=L1, L2=L2, Tx=float(x0), err=err))
@@ -49,7 +50,7 @@ def analyse(g, h, eps):
 
 if __name__ == "__main__":
     out = {}
-    for g, h, epss in [("A", 0.0, [0.003, 0.006, 0.012, 0.025, 0.05]), ("B", 0.5, [0.003, 0.006, 0.012, 0.025]), ("C", 0.0, [-0.012, -0.025])]:
+    for g, h, epss in [("A", 0.0, [0.003, 0.006, 0.012, 0.025, 0.05]), ("B", 0.5, [0.003, 0.006, 0.012, 0.025]), ("C", 0.0, [-0.012, -0.025]), ("A3", 0.0, [0.003])]:
         for eps in epss:
             r = analyse(g, h, eps)
             if r is None: continue

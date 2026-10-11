@@ -23,6 +23,10 @@ GROUPS = {
                Lb=[128], extra={0.003: [256]}, tag="A", step_coef=0.67),
     "B2": dict(h=0.5, eps={0.003: (0.60, 0.10), 0.006: (0.66, 0.08), 0.012: (0.76, 0.08), 0.025: (1.00, 0.08)},
                Lb=[128], extra={}, tag="B", step_coef=0.67),
+    # round 3: eps=0.003 transition lies above the round-2 window (U_256 still 0.5 at the upper edge) -> window centred on 0.84
+    "A3": dict(h=0.0, eps={0.003: (0.84, 0.10)}, Lb=[32, 64, 128], extra={0.003: [256]}, tag="A3", step_coef=0.67),
+    # round 3 for eps<0: narrow windows around the C_v maximum, long runs, series_every=1 (energy histograms, P5 / 8a)
+    "C3": dict(h=0.0, eps={-0.012: (1.162, 0.02), -0.025: (1.395, 0.02)}, Lb=[48, 64, 96, 128], extra={}, tag="C3", nrep=12, nmeas=100000),
     "C2": dict(h=0.0, eps={-0.012: (1.16, 0.08), -0.025: (1.33, 0.08)}, Lb=[128], extra={}, tag="C", step_coef=0.67),
 }
 
@@ -49,7 +53,8 @@ def main():
                 for seed in range(1, seeds + 1):
                     coef = G.get("step_coef", 2.4)
                     nrep = max(20, int(math.ceil(math.log((1 + w) / (1 - w)) / (coef / Lb))) + 1)
-                    nmeas = 10000 if Lb >= 256 else 20000
+                    nmeas = G.get("nmeas", 10000 if Lb >= 256 else 20000)
+                    if "nrep" in G: nrep = G["nrep"]
                     out = os.path.join(ROOT, "data", "j1j2", f"j1j2_{G.get('tag', gname)}_h{G['h']:g}_eps{eps:g}_Lb{Lb}_s{seed}")
                     jobs.append(dict(out=out, Lb=Lb, eps=eps, h=G["h"], seed=seed, Tmin=tc * (1 - w), Tmax=tc * (1 + w), nrep=nrep,
                                      neq=3000, nmeas=nmeas, series_every=1 if gname[0] == "C" else 10,
