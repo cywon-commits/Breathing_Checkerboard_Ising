@@ -62,6 +62,7 @@ def main():
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--maxLb", type=int, default=None)
     ap.add_argument("--init", default="neel")
+    ap.add_argument("--refine", default=None, help="json {set_epsX: [Tc_center, window]} (round 2: dense narrow PT ladders)")
     a = ap.parse_args()
 
     ch = commit()
@@ -87,6 +88,8 @@ def main():
                 key = f"{s}_eps{eps:g}"
                 tc0 = pil.get(key) or tcp
                 w = prof["window"]
+                if a.refine:
+                    tc0, w = json.load(open(a.refine))[key]
                 Tmin, Tmax = tc0 * (1 - w), tc0 * (1 + w)
                 for Lb in Lbs:
                     for seed in range(1, prof.get("seeds_by_Lb", {}).get(Lb, prof["seeds"]) + 1):
@@ -97,7 +100,7 @@ def main():
                                          eps=eps, nblocks=20))
     cost = 0
     for j in jobs:
-        j["nrep"] = nrep_for(j["Lb"], j["Tmin"], j["Tmax"])
+        j["nrep"] = nrep_for(j["Lb"], j["Tmin"], j["Tmax"], minimum=20 if a.refine else 6)
         j["cost"] = j["nrep"] * (j["neq"] + j["nmeas"]) * 4 * j["Lb"] ** 2 * 90e-9
         cost += j["cost"]
     print(f"{len(jobs)} jobs, estimated {cost/3600:.2f} CPU-hours ({cost/3600/a.workers:.2f} h wall on {a.workers} workers)")

@@ -21,6 +21,6 @@ reduced:                  # what was actually run in the 4-core cloud session (s
   neq: 3000
   nmeas: 20000
   seeds: 2
-  seeds_by_Lb: {64: 1}   # budget: one seed at Lb=64 except in the core set S1
+  seeds_by_Lb: {64: 2}   # budget: one seed at Lb=64 except in the core set S1
   window: 0.18            # centred on the pilot T_c (stage 1), not on Tc_pred
   nstrip: 4
