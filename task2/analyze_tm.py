@@ -125,4 +125,41 @@ axs2[0].set_xlabel("W"); axs2[0].set_ylabel("xi_y/W"); axs2[0].legend(fontsize=6
 axs2[1].set_xlabel("W"); axs2[1].set_ylabel("xi_y (steps of 2 rows)"); axs2[1].set_yscale("log")
 fig2.tight_layout(); fig2.savefig(os.path.join(HERE, "results", "xi_y.png"), dpi=130)
 out["xi_y"] = {str(u): {str(W): v for W, v in d.items()} for u, d in tab.items()}
+
+
+# ------------------------------------------------------------ crossings of x2(W,u) curves of different W (phase-interface / KT)
+print("\n== crossings u_x(W1,W2) of x2(W1,u) and x2(W2,u) ==")
+pairs = list(zip(Ws[:-1], Ws[1:]))
+ux = {"stag": {}, "F": {}}
+for model in ("stag", "F"):
+    ugrid_m = sorted({k[2] for k in R if k[0] == model and k[3] == 2 and k[1] == Ws[-2]})
+    for (W1, W2) in pairs:
+        us = [u for u in ugrid_m if x2(model, W1, u) is not None and x2(model, W2, u) is not None]
+        if len(us) < 4: continue
+        d = CubicSpline(us, [x2(model, W2, u) - x2(model, W1, u) for u in us])
+        uu = np.linspace(us[0], us[-1], 4000); dv = d(uu)
+        sg = np.nonzero(dv[:-1] * dv[1:] < 0)[0]
+        # the relevant sign change: x2(W2) < x2(W1) (Coulomb) -> x2(W2) > x2(W1) (beyond u_c); take the last - to + change
+        up = [i for i in sg if dv[i] < 0 < dv[i + 1]]
+        if up:
+            ux[model][(W1, W2)] = float(brentq(lambda t: d(t), uu[up[-1]], uu[up[-1] + 1]))
+    print(model, {f"{a}-{b}": round(v, 4) for (a, b), v in ux[model].items()})
+out["u_cross_pairs"] = {m: {f"{a}-{b}": v for (a, b), v in d.items()} for m, d in ux.items()}
+
+# ------------------------------------------------------------ large u: sliding liquid checks
+print("\n== large u ==")
+big = {}
+for u in (3.0, 4.0, 5.0, 6.0):
+    rows = []
+    for W in Ws:
+        l0, l1 = lam("stag", W, u, 0, 0), lam("stag", W, u, 0, 1)
+        xv = x2("stag", W, u)
+        if l0 is None or l1 is None: continue
+        r = abs(l1 / l0)
+        rows.append(dict(W=W, s_row=float(np.log(abs(l0)) - u * W / 2), ratio=float(r), r_minus_half_over_Wexp=float((r - 0.5) / (W * np.exp(-u))),
+                         x2_over_W=None if xv is None else float(xv / W)))
+    big[u] = rows
+    print(f"u={u}:  " + "  ".join(f"W={r['W']}: s={r['s_row']:.4f}, (r-1/2)/(W e^-u)={r['r_minus_half_over_Wexp']:.3f}, x2/W={r['x2_over_W']:.4f}" for r in rows))
+print("(ln 2 = %.4f)" % np.log(2))
+out["large_u"] = {str(u): v for u, v in big.items()}
 json.dump(out, open(os.path.join(HERE, "results", "tm_summary.json"), "w"), indent=1)

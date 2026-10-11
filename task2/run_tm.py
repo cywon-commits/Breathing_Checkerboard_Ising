@@ -20,6 +20,15 @@ U_F = [0.0, 0.5, 0.6, 0.65, float(np.log(2)), 0.75, 0.8, 0.85, 0.9]   # calibrat
 
 def jobs(W):
     J = []
+    if W >= 28:   # W=28 (40 million states in the M=0 sector): targeted subset only
+        us = [1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.8, 3.0]
+        for u in [float(np.log(2)), 0.8]:
+            J += [("F", W, u, 0, 1), ("F", W, u, 2, 1)]
+        for u in us + [1.5, 1.7]:
+            J.append(("stag", W, u, 2, 1))
+        for u in us:
+            J.append(("stag", W, u, 0, 3))
+        return J
     for u in U_F:
         J += [("F", W, u, 0, 1), ("F", W, u, 2, 1)]
     for u in U_STAG_M2:
