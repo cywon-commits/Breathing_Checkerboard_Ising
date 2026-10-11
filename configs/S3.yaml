@@ -1,0 +1,25 @@
+# Set S3: h dependence: K=4, h=0.5
+# Region: A-violation.  Units: J_A = 1.  E_k = 2.
+name: S3
+JA: 1.0
+K: 4
+h: 0.5
+Ek: 2
+eps: [0.003, 0.006, 0.012, 0.025]
+Tc_pred: [0.425, 0.498, 0.602, 0.772]        # leading-log estimate  E_k / ln(E_k / 6|eps|)
+Lb: [16, 32, 64, 128]           # B-lattice sizes (L = 2 Lb); spec ("full") sizes
+region: "A-violation"
+full:                     # run plan requested in the commissioning document
+  neq: 20000
+  nmeas: 200000
+  seeds: 4
+  nrep: "24-48, chosen so that the swap acceptance is >= 20%"
+  window: 0.30            # PT range = Tc_pred * (1 +- window)
+  nstrip: 4
+reduced:                  # what was actually run in the 4-core cloud session (see REPORT.md)
+  Lb: [16, 32, 64]
+  neq: 3000
+  nmeas: 30000
+  seeds: 2
+  window: 0.18            # centred on the pilot T_c (stage 1), not on Tc_pred
+  nstrip: 4

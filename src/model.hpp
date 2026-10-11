@@ -53,12 +53,13 @@ struct Model {
     int L, Lb, N, NB, NA;
     double JA, eps, K, h, J1, J2, JB;
     std::vector<int> Asite, Bsite, Aof, Bof;
+    std::vector<int8_t> Apos;
 
     Model(int Lb_, double JA_, double eps_, double K_, double h_)
         : Lb(Lb_), JA(JA_), eps(eps_), K(K_), h(h_) {
         L = 2 * Lb; N = L * L; NB = NA = Lb * Lb;
         J1 = JA + eps; J2 = JA - 2 * eps; JB = -K;
-        Asite.assign(4 * NA, 0); Bsite.assign(4 * NB, 0); Aof.assign(N, 0); Bof.assign(N, 0);
+        Asite.assign(4 * NA, 0); Bsite.assign(4 * NB, 0); Aof.assign(N, 0); Bof.assign(N, 0); Apos.assign(N, 0);
         for (int Y = 0; Y < Lb; Y++)
             for (int X = 0; X < Lb; X++) {
                 int c = Y * Lb + X;
@@ -66,7 +67,7 @@ struct Model {
                     int dx = p & 1, dy = p >> 1;
                     int ia = idx(2 * X + 2 + dx, 2 * Y + 2 + dy);
                     int ib = idx(2 * X + 1 + dx, 2 * Y + 1 + dy);
-                    Asite[4 * c + p] = ia; Aof[ia] = c;
+                    Asite[4 * c + p] = ia; Aof[ia] = c; Apos[ia] = (int8_t)p;
                     Bsite[4 * c + p] = ib; Bof[ib] = c;
                 }
             }
@@ -135,8 +136,7 @@ struct Model {
         int a = Aof[i], b = Bof[i];
         const int* qa = &Asite[4 * a];
         const int* qb = &Bsite[4 * b];
-        int p = 0;
-        for (; p < 4; p++) if (qa[p] == i) break;
+        int p = Apos[i];
         int sg = s[i];
         double eA = sg * (J1 * (s[qa[p ^ 1]] + s[qa[p ^ 2]]) + J2 * s[qa[p ^ 3]]);
         int S = s[qb[0]] + s[qb[1]] + s[qb[2]] + s[qb[3]];

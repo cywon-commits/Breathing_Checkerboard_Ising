@@ -1,0 +1,25 @@
+# Set S4: exploratory: B-mediated kink region K=0.15, h=0.5
+# Region: B-mediated (exploratory, formula not valid).  Units: J_A = 1.  E_k = 1.2.
+name: S4
+JA: 1.0
+K: 0.15
+h: 0.5
+Ek: 1.2
+eps: [0.01, 0.03]
+Tc_pred: [0.401, 0.633]        # leading-log estimate  E_k / ln(E_k / 6|eps|)
+Lb: [16, 32, 64]           # B-lattice sizes (L = 2 Lb); spec ("full") sizes
+region: "B-mediated (exploratory, formula not valid)"
+full:                     # run plan requested in the commissioning document
+  neq: 20000
+  nmeas: 200000
+  seeds: 4
+  nrep: "24-48, chosen so that the swap acceptance is >= 20%"
+  window: 0.30            # PT range = Tc_pred * (1 +- window)
+  nstrip: 4
+reduced:                  # what was actually run in the 4-core cloud session (see REPORT.md)
+  Lb: [16, 32, 64]
+  neq: 3000
+  nmeas: 30000
+  seeds: 2
+  window: 0.18            # centred on the pilot T_c (stage 1), not on Tc_pred
+  nstrip: 4
