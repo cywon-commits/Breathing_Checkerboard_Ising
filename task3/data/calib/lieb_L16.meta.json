@@ -1,0 +1,9 @@
+{
+ "model": "stag", "L": 16, "neq": 2000, "nmeas": 40000, "meas_every": 1, "series_every": 100000, "nblocks": 20, "blocklen": 2000, "seed": 1, "init": "rowrand", "commit": "unknown", "seconds": 2.64847837,
+ "u": [0],
+ "swap_acc": [],
+ "loops_per_sweep": [5],
+ "mean_loop_len": [237.179414],
+ "aborted_fraction": [0],
+ "Q_sign_switches_per_config": [0]
+}

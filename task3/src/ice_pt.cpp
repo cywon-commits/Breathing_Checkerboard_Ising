@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
     long neq = std::stol(get("neq", "20000")), nmeas = std::stol(get("nmeas", "100000"));
     int nblocks = std::stoi(get("nblocks", "20")), meas_every = std::stoi(get("meas_every", "1")), series_every = std::stoi(get("series_every", "10"));
     uint64_t seed = std::stoull(get("seed", "1"));
+    const bool noswap = get("noswap", "0") == "1";   // independent runs at every u (no replica exchange)
     std::vector<double> U;
     {
         std::string ul = get("ulist", "1.0");
@@ -40,7 +41,7 @@ int main(int argc, char** argv) {
     std::vector<int> perm(nrep);
     for (int t = 0; t < nrep; t++) perm[t] = t;
     Rng swapRng(seed, 424242);
-    std::vector<int> nloops(nrep, std::max(1, M.N / 4));
+    std::vector<int> nloops(nrep, 1);      // 1 loop per sweep during the short warm-up, then tuned so that the mean number of traversed edges per sweep is ~N
     std::vector<double> lensum(nrep, 0.0); std::vector<long> loopcnt(nrep, 0), abortcnt(nrep, 0);
     std::vector<long> swt(nrep, 0), swa(nrep, 0);
     std::vector<int> sgn(nrep, 0), switches(nrep, 0);     // per configuration: last |Q|>0.1 sign and number of sign changes
@@ -51,12 +52,13 @@ int main(int argc, char** argv) {
     int nbl = (int)(nrec / blen);
     std::vector<double> acc(nrep * NF, 0.0), blocks;
     std::vector<float> series;
-    long rec = 0, inblock = 0, warm = std::min(neq / 2, 1000L);
+    long rec = 0, inblock = 0, warm = 200;   // warm-up sweeps (not counted in neq)
     auto t0 = std::chrono::steady_clock::now();
     const int maxsteps = 200 * M.N;
 
-    for (long it = 0; it < neq + nmeas; it++) {
-        bool measuring = it >= neq && ((it - neq) % meas_every == 0) && rec < (long)nbl * blen;
+    for (long it = 0; it < warm + neq + nmeas; it++) {
+        long it0 = it - warm;                                  // sweeps after the warm-up
+        bool measuring = it0 >= neq && ((it0 - neq) % meas_every == 0) && rec < (long)nbl * blen;
         std::vector<Ice::Obs> obs(nrep);
         std::vector<int> ncnow(nrep);
 #pragma omp parallel for schedule(static)
@@ -73,7 +75,7 @@ int main(int argc, char** argv) {
             ncnow[t] = M.count_c(spins[c].data(), isF);
             if (measuring) obs[t] = M.measure(spins[c].data());
         }
-        if (it == warm && neq > 0) {   // fix the number of loops per sweep (mean traversed edges ~ N) after a short warm-up
+        if (it == warm - 1) {   // fix the number of loops per sweep (mean traversed edges ~ N) after a short warm-up
             for (int t = 0; t < nrep; t++) {
                 double mean = lensum[t] / std::max(1L, loopcnt[t]);
                 nloops[t] = std::max(1, (int)std::ceil(M.N / std::max(1.0, mean)));
@@ -101,7 +103,7 @@ int main(int argc, char** argv) {
             rec++; inblock++;
             if (inblock == blen) { for (int i = 0; i < nrep * NF; i++) { blocks.push_back(acc[i] / blen); acc[i] = 0; } inblock = 0; }
         }
-        for (int t = (int)(it & 1); t + 1 < nrep; t += 2) {   // replica exchange in u
+        for (int t = (int)(it & 1); !noswap && t + 1 < nrep; t += 2) {   // replica exchange in u
             double d = (U[t] - U[t + 1]) * (double)(ncnow[t + 1] - ncnow[t]);
             swt[t]++;
             if (d >= 0 || swapRng.uniform() < std::exp(d)) { std::swap(perm[t], perm[t + 1]); swa[t]++; }
