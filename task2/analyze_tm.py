@@ -163,3 +163,39 @@ for u in (3.0, 4.0, 5.0, 6.0):
 print("(ln 2 = %.4f)" % np.log(2))
 out["large_u"] = {str(u): v for u, v in big.items()}
 json.dump(out, open(os.path.join(HERE, "results", "tm_summary.json"), "w"), indent=1)
+
+
+# ------------------------------------------------------------ xi_y/W curves for different W (scale invariance) and local exponents
+print("\n== crossings of xi_y(W1)/W1 and xi_y(W2)/W2 (scale-invariant point) ==")
+uxi = {}
+fig3, axs3 = plt.subplots(1, 2, figsize=(11, 4))
+for model, ax in (("stag", axs3[0]), ("F", axs3[1])):
+    ugrid_m = sorted({k[2] for k in R if k[0] == model and k[3] == 0 and k[1] == Ws[-2] and len(R[k]["eig_re"]) >= 2})
+    uxi[model] = {}
+    for W in Ws:
+        us = [u for u in ugrid_m if xi_y(model, W, u) is not None and u <= (2.6 if model == "stag" else 1.0)]
+        if len(us) >= 4: ax.plot(us, [xi_y(model, W, u) / W for u in us], "o-", ms=3, label=f"W={W}")
+    for (W1, W2) in zip(Ws[:-1], Ws[1:]):
+        us = [u for u in ugrid_m if xi_y(model, W1, u) is not None and xi_y(model, W2, u) is not None and u <= (2.6 if model == "stag" else 1.0)]
+        if len(us) < 4: continue
+        d = CubicSpline(us, [xi_y(model, W2, u) / W2 - xi_y(model, W1, u) / W1 for u in us])
+        uu = np.linspace(us[0], us[-1], 4000); dv = d(uu)
+        up = [i for i in np.nonzero(dv[:-1] * dv[1:] < 0)[0] if dv[i] < 0 < dv[i + 1]]
+        if up: uxi[model][(W1, W2)] = float(brentq(lambda t: d(t), uu[up[0]], uu[up[0] + 1]))
+    ax.set_xlabel("u"); ax.set_ylabel("xi_y/W"); ax.legend(fontsize=6)
+    ax.set_title("staggered" if model == "stag" else "uniform F model", fontsize=9)
+    print(model, {f"{a}-{b}": round(v, 4) for (a, b), v in uxi[model].items()})
+fig3.tight_layout(); fig3.savefig(os.path.join(HERE, "results", "xi_cross.png"), dpi=130)
+out["u_cross_xi"] = {m: {f"{a}-{b}": v for (a, b), v in d.items()} for m, d in uxi.items()}
+
+print("\n== local exponents between the two largest widths: x2 ~ W^ax , xi_y ~ W^az  (rough Coulomb: ax=0, az=1) ==")
+Wa, Wb = Ws[-2], Ws[-1]
+lt = {}
+for u in sorted({k[2] for k in R if k[0] == "stag" and k[3] == 2 and k[1] == Wb}):
+    a1, a2 = x2("stag", Wa, u), x2("stag", Wb, u)
+    z1, z2 = xi_y("stag", Wa, u), xi_y("stag", Wb, u)
+    if None in (a1, a2, z1, z2): continue
+    lt[u] = dict(ax=float(np.log(a2 / a1) / np.log(Wb / Wa)), az=float(np.log(z2 / z1) / np.log(Wb / Wa)))
+print("W pair", (Wa, Wb), "  ".join(f"u={u:g}: ax={v['ax']:+.3f} az={v['az']:.2f}" for u, v in lt.items() if u in (0.8, 1.0, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 3.0, 4.0, 6.0)))
+out["local_exponents"] = {str(u): v for u, v in lt.items()}
+json.dump(out, open(os.path.join(HERE, "results", "tm_summary.json"), "w"), indent=1)
