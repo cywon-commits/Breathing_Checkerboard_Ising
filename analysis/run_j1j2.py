@@ -18,6 +18,12 @@ GROUPS = {
     "B": dict(h=0.5, eps={0.003: (0.60, 0.22), 0.006: (0.66, 0.15), 0.012: (0.78, 0.12), 0.025: (1.00, 0.12)},
               Lb=[16, 32, 64, 128], extra={}),
     "C": dict(h=0.0, eps={-0.012: (1.16, 0.15), -0.025: (1.33, 0.12)}, Lb=[16, 32, 64, 128], extra={}),
+    # round 2 for the large sizes (round-1 L_b = 128/256 had swap acceptance 0.01-0.3 -> not equilibrated; kept in data/j1j2_lowswap)
+    "A2": dict(h=0.0, eps={0.003: (0.746, 0.08), 0.006: (0.84, 0.08), 0.012: (0.97, 0.08), 0.025: (1.19, 0.08), 0.05: (1.57, 0.08)},
+               Lb=[128], extra={0.003: [256]}, tag="A", step_coef=0.67),
+    "B2": dict(h=0.5, eps={0.003: (0.60, 0.10), 0.006: (0.66, 0.08), 0.012: (0.76, 0.08), 0.025: (1.00, 0.08)},
+               Lb=[128], extra={}, tag="B", step_coef=0.67),
+    "C2": dict(h=0.0, eps={-0.012: (1.16, 0.08), -0.025: (1.33, 0.08)}, Lb=[128], extra={}, tag="C", step_coef=0.67),
 }
 
 
@@ -39,14 +45,16 @@ def main():
         G = GROUPS[gname]
         for eps, (tc, w) in G["eps"].items():
             for Lb in G["Lb"] + G["extra"].get(eps, []):
-                seeds = 2 if Lb <= 128 and not (gname in "BC" and Lb == 128) else 1
+                seeds = 2 if Lb <= 128 and not (gname[0] in "BC" and Lb == 128) else 1
                 for seed in range(1, seeds + 1):
-                    nrep = max(20, int(math.ceil(math.log((1 + w) / (1 - w)) / (2.4 / Lb))) + 1)
+                    coef = G.get("step_coef", 2.4)
+                    nrep = max(20, int(math.ceil(math.log((1 + w) / (1 - w)) / (coef / Lb))) + 1)
                     nmeas = 10000 if Lb >= 256 else 20000
-                    out = os.path.join(ROOT, "data", "j1j2", f"j1j2_{gname}_h{G['h']:g}_eps{eps:g}_Lb{Lb}_s{seed}")
+                    out = os.path.join(ROOT, "data", "j1j2", f"j1j2_{G.get('tag', gname)}_h{G['h']:g}_eps{eps:g}_Lb{Lb}_s{seed}")
                     jobs.append(dict(out=out, Lb=Lb, eps=eps, h=G["h"], seed=seed, Tmin=tc * (1 - w), Tmax=tc * (1 + w), nrep=nrep,
-                                     neq=3000, nmeas=nmeas, series_every=1 if gname == "C" else 10,
+                                     neq=3000, nmeas=nmeas, series_every=1 if gname[0] == "C" else 10,
                                      cost=nrep * (3000 + nmeas) * Lb * Lb * 55e-9))
+    jobs = [j for j in jobs]
     tot = sum(j["cost"] for j in jobs)
     print(f"{len(jobs)} jobs, ~{tot/3600:.2f} CPU-h")
     if a.dry:
