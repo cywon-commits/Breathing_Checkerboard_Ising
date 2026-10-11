@@ -1,0 +1,14 @@
+# Task 1, revision 8a item 3: S4 widened.  B-mediated kink (8K) competes with the A-violation kink 4(J_A-h);
+# this region does not reduce to the J1-J2 model.  Units J_A = 1.
+name: S4x
+JA: 1.0
+K: [0.1, 0.15, 0.2, 0.3]
+h: [0.0, 0.5]
+eps: [0.03, 0.01]
+# E_k = min(8K, 4(J_A-h)); regions: h=0: 8K<4 for all K here (B-mediated);
+#   h=0.5: 8K<2 for K<0.25 (B-mediated: K=0.1,0.15,0.2), K=0.3 -> 2.4>2 (A-violation side)
+Lb: [16, 32]          # plus Lb=64 for eps=0.03 (one seed)
+Lb64_eps: [0.03]
+pilot: {Lb: 16, Tmin: 0.1, Tmax: 2.0, nrep: 40, neq: 1000, nmeas: 4000}
+prod: {neq: 3000, nmeas: 20000, seeds: 2, window: 0.15, nrep_min: 20, nstrip: 4}
+observables_extra: "rBal = fraction of B plaquettes with n_B in {0,4} (superspin picture), stored in blocks.csv"
