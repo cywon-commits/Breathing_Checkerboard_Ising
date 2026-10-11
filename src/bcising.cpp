@@ -5,6 +5,7 @@
 // Writes  <out>.blocks.csv   block averages of all observables per temperature
 //         <out>.series.f32   decimated time series (float32, shape [nrec][nrep][2]: mN^2, ms^2)
 //         <out>.meta.json    parameters, provenance, acceptance rates
+//         <out>.snap.i8      (only with --dump 1) final configuration of every temperature, int8 [nrep][N]
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -161,6 +162,10 @@ int main(int argc, char** argv) {
             f << "]";
         }
         f << "}\n}\n";
+    }
+    if (get("dump", "0") == "1") {
+        std::ofstream f(out + ".snap.i8", std::ios::binary);
+        for (int t = 0; t < nrep; t++) f.write((const char*)reps[perm[t]].s.data(), M.N);
     }
     double minsw = 1;
     for (int t = 0; t + 1 < nrep; t++) if (swt[t]) minsw = std::min(minsw, (double)swa[t] / swt[t]);
