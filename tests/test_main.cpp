@@ -176,10 +176,10 @@ static void test_dE_vs_bruteforce() {
                 // half flip
                 { int b = g.below(M.NB), e = g.below(4);
                   int st[2] = {M.Bsite[4 * b + Model::HALF_P[e][0]], M.Bsite[4 * b + Model::HALF_P[e][1]]};
-                  double d = M.dE_flipset(r, st, 2); double bb = brute_dE_flip(M, r, {st[0], st[1]}); total++; if (!near(d, bb)) bad++; }
+                  double d = M.dE_flipset(r, st, 2); double d2 = M.dE_half(r, st[0], st[1]); double bb = brute_dE_flip(M, r, {st[0], st[1]}); total += 2; if (!near(d, bb)) bad++; if (!near(d2, bb)) bad++; }
                 // superspin flip
                 { int b = g.below(M.NB); const int* st = &M.Bsite[4 * b];
-                  double d = M.dE_flipset(r, st, 4); double bb = brute_dE_flip(M, r, {st[0], st[1], st[2], st[3]}); total++; if (!near(d, bb)) bad++; }
+                  double d = M.dE_flipset(r, st, 4); double d2 = M.dE_super(r, b); double bb = brute_dE_flip(M, r, {st[0], st[1], st[2], st[3]}); total += 2; if (!near(d, bb)) bad++; if (!near(d2, bb)) bad++; }
                 // strip (all w, both orientations)
                 { int ori = g.below(2), x0 = g.below(Lb), w = 1 + g.below(Lb - 1);
                   double d = M.dE_strip(r, ori, x0, w);
@@ -304,8 +304,8 @@ static void test_detailed_balance() {
             double dE = 0; bool acc;
             int st[4], n = 0;
             if (mv.bit == 1) { int i = g.below(16); st[0] = i; n = 1; dE = M.dE_single(r, i); }
-            else if (mv.bit == 2) { int b = g.below(4), e = g.below(4); st[0] = M.Bsite[4 * b + Model::HALF_P[e][0]]; st[1] = M.Bsite[4 * b + Model::HALF_P[e][1]]; n = 2; dE = M.dE_flipset(r, st, 2); }
-            else if (mv.bit == 4) { int b = g.below(4); for (int p = 0; p < 4; p++) st[p] = M.Bsite[4 * b + p]; n = 4; dE = M.dE_flipset(r, st, 4); }
+            else if (mv.bit == 2) { int b = g.below(4), e = g.below(4); st[0] = M.Bsite[4 * b + Model::HALF_P[e][0]]; st[1] = M.Bsite[4 * b + Model::HALF_P[e][1]]; n = 2; dE = M.dE_half(r, st[0], st[1]); }
+            else if (mv.bit == 4) { int b = g.below(4); for (int p = 0; p < 4; p++) st[p] = M.Bsite[4 * b + p]; n = 4; dE = M.dE_super(r, b); }
             acc = Model::accept(dE, beta, g);
             if (mv.bit == 8) {
                 int ori = g.below(2), x0 = g.below(2), w = 1 + g.below(1);

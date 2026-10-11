@@ -142,6 +142,27 @@ struct Model {
         int S = s[qb[0]] + s[qb[1]] + s[qb[2]] + s[qb[3]];
         return -2 * eA + 2 * JB * (1 - sg * S) + 2 * h * sg;
     }
+    // A-plaquette part of the energy change for flipping spin i alone
+    inline double dEA_spin(const int8_t* s, int i) const {
+        const int* qa = &Asite[4 * Aof[i]];
+        int p = Apos[i];
+        return -2.0 * s[i] * (J1 * (s[qa[p ^ 1]] + s[qa[p ^ 2]]) + J2 * s[qa[p ^ 3]]);
+    }
+    // half flip of B plaquette b (neighbouring pair e) and superspin flip: closed forms.  The flipped spins
+    // always lie in distinct A plaquettes, so the A parts add.
+    inline double dE_half(const Replica& r, int i, int j) const {
+        const int8_t* s = r.s.data();
+        const int* qb = &Bsite[4 * Bof[i]];
+        int S = s[qb[0]] + s[qb[1]] + s[qb[2]] + s[qb[3]];
+        int t = s[i] + s[j];
+        return dEA_spin(s, i) + dEA_spin(s, j) + 0.5 * JB * (-4.0 * t * S + 4.0 * t * t) + 2 * h * t;
+    }
+    inline double dE_super(const Replica& r, int b) const {
+        const int8_t* s = r.s.data();
+        const int* qb = &Bsite[4 * b];
+        return dEA_spin(s, qb[0]) + dEA_spin(s, qb[1]) + dEA_spin(s, qb[2]) + dEA_spin(s, qb[3]) +
+               2 * h * (s[qb[0]] + s[qb[1]] + s[qb[2]] + s[qb[3]]);
+    }
     // flip an arbitrary small set of spins (all in distinct A plaquettes or not): returns dE
     double dE_flipset(Replica& r, const int* sites, int n) const {
         int as[4], bs[4], na = 0, nb = 0;
@@ -226,7 +247,7 @@ struct Model {
             for (int k = 0; k < NB; k++) {
                 int b = g.below(NB), e = g.below(4);
                 int st[2] = {Bsite[4 * b + HALF_P[e][0]], Bsite[4 * b + HALF_P[e][1]]};
-                double dE = dE_flipset(r, st, 2);
+                double dE = dE_half(r, st[0], st[1]);
                 tried[MV_HALF]++;
                 if (accept(dE, beta, g)) { apply_flipset(r, st, 2, dE); acc[MV_HALF]++; }
             }
@@ -234,7 +255,7 @@ struct Model {
             for (int k = 0; k < NB; k++) {
                 int b = g.below(NB);
                 const int* st = &Bsite[4 * b];
-                double dE = dE_flipset(r, st, 4);
+                double dE = dE_super(r, b);
                 tried[MV_SUPER]++;
                 if (accept(dE, beta, g)) { apply_flipset(r, st, 4, dE); acc[MV_SUPER]++; }
             }

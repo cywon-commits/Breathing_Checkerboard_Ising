@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Launch the Monte Carlo runs of one or more parameter sets (configs/S*.yaml).
 
-  python analysis/run_set.py pilot S1 S2 S3 S4 S5      # stage 0: locate T_c roughly (Lb=16, wide window)
+  python analysis/run_set.py pilot S1 S2 S3 S4 S5      # stage 0: locate T_c roughly (Lb=32, window 0.6-2.0 x Tc_pred)
   python analysis/run_set.py prod  S1 S2 S3 S4 S5      # stage 1: production runs, PT window centred on pilot T_c
   options: --profile reduced|full  --workers 4  --dry
 
@@ -72,14 +72,16 @@ def main():
         cfg = yaml.safe_load(open(os.path.join(ROOT, "configs", f"{s}.yaml")))
         prof = cfg[a.profile]
         Lbs = prof.get("Lb", cfg["Lb"])
+        if s == "S4" and a.stage == "prod":
+            Lbs = [l for l in Lbs if l <= 32]  # exploratory set: small sizes only
         if a.maxLb:
             Lbs = [l for l in Lbs if l <= a.maxLb]
         for eps, tcp in zip(cfg["eps"], cfg["Tc_pred"]):
             if a.stage == "pilot":
-                Lb, seed = 16, 1
-                Tmin, Tmax = tcp * 0.7, tcp * 1.3
+                Lb, seed = 32, 1
+                Tmin, Tmax = tcp * 0.6, tcp * 2.0
                 out = os.path.join(ROOT, "data", "pilot", tag(s, cfg["K"], cfg["h"], eps, Lb, seed))
-                jobs.append(dict(out=out, Lb=Lb, seed=seed, Tmin=Tmin, Tmax=Tmax, neq=1000, nmeas=6000,
+                jobs.append(dict(out=out, Lb=Lb, seed=seed, Tmin=Tmin, Tmax=Tmax, neq=1000, nmeas=4000,
                                  nstrip=4, meas_every=1, set=s, K=cfg["K"], h=cfg["h"], eps=eps, nblocks=10))
             else:
                 key = f"{s}_eps{eps:g}"
@@ -87,7 +89,7 @@ def main():
                 w = prof["window"]
                 Tmin, Tmax = tc0 * (1 - w), tc0 * (1 + w)
                 for Lb in Lbs:
-                    for seed in range(1, prof["seeds"] + 1):
+                    for seed in range(1, prof.get("seeds_by_Lb", {}).get(Lb, prof["seeds"]) + 1):
                         out = os.path.join(ROOT, "data", s, tag(s, cfg["K"], cfg["h"], eps, Lb, seed))
                         jobs.append(dict(out=out, Lb=Lb, seed=seed, Tmin=Tmin, Tmax=Tmax, neq=prof["neq"],
                                          nmeas=prof["nmeas"], nstrip=prof["nstrip"],
