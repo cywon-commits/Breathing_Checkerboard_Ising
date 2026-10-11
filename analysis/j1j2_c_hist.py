@@ -30,10 +30,12 @@ def peaks(e, nb=120):
 out = {}
 fig, axs = plt.subplots(1, 2, figsize=(11, 3.8))
 for ax, eps in zip(axs, (-0.012, -0.025)):
-    for Lb, col in zip((16, 32, 64, 128), ("C0", "C1", "C2", "C3")):
-        fs = sorted(glob.glob(os.path.join(D, f"j1j2_C_h0_eps{eps:g}_Lb{Lb}_s1.meta.json")))
+    for Lb, col in zip((48, 64, 96, 128), ("C0", "C1", "C2", "C3")):
+        # round 3 (narrow window around C_v max, 1e5 measurements per seed): both seeds concatenated
+        fs = sorted(glob.glob(os.path.join(D, f"j1j2_C3_h0_eps{eps:g}_Lb{Lb}_s*.meta.json")))
         if not fs: continue
-        meta, a = load_series(fs[0][:-len(".meta.json")])
+        parts = [load_series(f[:-len(".meta.json")]) for f in fs]
+        meta = parts[0][0]; a = np.concatenate([x[1] for x in parts], axis=0)
         e = a[:, :, 0].astype(float)         # (nrec, nrep)
         ms2 = a[:, :, 2].astype(float)
         T = np.array(meta["T"]); N = Lb * Lb
