@@ -45,9 +45,9 @@ def crossing(T1, U1, T2, U2, guess=None, lo=0.05, hi=0.64):
                 roots.append(r)
     if not roots:
         return np.nan
-    if guess is None:
-        return roots[0]
-    return min(roots, key=lambda r: abs(r - guess))
+    # several crossings can occur in the noisy disordered tail (U ~ 0): take the one on the ordered side
+    # of the transition, i.e. the lowest-T root (guess only breaks ties when given)
+    return min(roots)
 
 
 def collect(set_name, cfg):

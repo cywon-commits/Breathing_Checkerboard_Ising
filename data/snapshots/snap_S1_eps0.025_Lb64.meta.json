@@ -1,0 +1,8 @@
+{
+ "Lb": 64, "L": 128, "JA": 1, "K": 4, "h": 0, "eps": 0.025,
+ "nrep": 3, "neq": 6000, "nmeas": 1000, "meas_every": 1, "nblocks": 5, "blocklen": 200, "series_every": 10, "nstrip": 4, "moves": 15,
+ "seed": 3, "init": "neel", "commit": "849a151", "seconds": 18.43717849, "max_energy_drift": 4.790490493e-08,
+ "T": [0.84,1.2,1.56],
+ "swap_acc": [0.0002857142857,0],
+ "move_acc": {"single": [0,0,1.918247768e-07],"half": [0,0,6.975446429e-08],"super": [0.0002767159598,0.02208666992,0.1014425921],"strip": [0,0,0]}
+}

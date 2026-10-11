@@ -16,8 +16,8 @@ from lib import load_run, jackknife, FI
 S_LIEB = 0.5 * np.log((4 / 3) ** 1.5)
 
 
-def run(Lb, JB=4.0, nrep=40, Tmin=0.2, Tmax=8.0, neq=5000, nmeas=40000, seed=1, init="random"):
-    out = os.path.join(ROOT, "data", "lieb", f"lieb_JB{JB:g}_Lb{Lb}_{init}_s{seed}")
+def run(Lb, JB=4.0, nrep=60, Tmin=0.2, Tmax=60.0, neq=5000, nmeas=40000, seed=1, init="random"):
+    out = os.path.join(ROOT, "data", "lieb", f"lieb_JB{JB:g}_Tmax{Tmax:g}_Lb{Lb}_{init}_s{seed}")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     if not os.path.exists(out + ".meta.json"):
         subprocess.run([os.path.join(ROOT, "build", "bcising"), "--Lb", str(Lb), "--K", str(-JB), "--h", "0", "--eps", "0",

@@ -75,7 +75,7 @@ def slope_fits(rows):
             d["valid"] = dict(slope=p[1], err=e[1], intercept=p[0], chi2=chi2, dof=dof, n=len(good))
         for i in range(len(R) - 1):  # local slope between adjacent eps
             s = (y[i + 1] - y[i]) / (x[i + 1] - x[i])
-            es = np.hypot(sy[i], sy[i + 1]) / (x[i + 1] - x[i])
+            es = np.hypot(sy[i], sy[i + 1]) / abs(x[i + 1] - x[i])
             d["local"].append(dict(eps_pair=(R[i]["eps"], R[i + 1]["eps"]), slope=s, err=es,
                                    flagged=R[i]["small"] or R[i + 1]["small"]))
         out[sname] = d

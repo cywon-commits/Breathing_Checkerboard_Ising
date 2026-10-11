@@ -10,6 +10,7 @@
 #include <string>
 
 #include "../src/model.hpp"
+#include "../src/j1j2.hpp"
 
 static int nfail = 0;
 #define CHECK(cond, ...) do { if (!(cond)) { nfail++; printf("  FAIL: "); printf(__VA_ARGS__); printf("\n"); } } while (0)
@@ -340,6 +341,46 @@ static void test_detailed_balance() {
     }
 }
 
+// ---------------------------------------------------------------- T6
+// B plaquettes frozen into superspins  <=>  J1-J2 Ising model with J1 = 2(J_A+eps), J2 = J_A-2eps, hf = 4h
+static void test_j1j2_mapping() {
+    printf("T6 mapping to the J1-J2 Ising model and its dE\n");
+    int bad = 0, total = 0;
+    for (int Lb : {2, 4, 6}) {
+        for (double eps : {0.05, -0.03}) {
+            double K = 3.0, h = 0.4;
+            Model M(Lb, 1.0, eps, K, h);
+            J1J2 J(Lb, 2 * (1.0 + eps), 1.0 - 2 * eps, 4 * h);
+            Rng g(77, Lb);
+            for (int trial = 0; trial < 200; trial++) {
+                std::vector<int8_t> tau(Lb * Lb);
+                for (auto& x : tau) x = (g.next() >> 63) ? 1 : -1;
+                std::vector<int> tv(M.NB);
+                for (int Y = 0; Y < Lb; Y++) for (int X = 0; X < Lb; X++) tv[Y * Lb + X] = tau[J.id(X, Y)];
+                Replica r; r.s.assign(M.N, 1);
+                for (int b = 0; b < M.NB; b++) for (int p = 0; p < 4; p++) r.s[M.Bsite[4 * b + p]] = (int8_t)tv[b];
+                M.rebuild(r);
+                double Ej = J.energy(tau) - 8 * K * M.NB;   // J_B/2 S_B^2 = 8 J_B = -8K per aligned B plaquette
+                total++; if (!near(r.E, Ej)) { bad++; if (getenv("DBG")) printf("energy Lb=%d eps=%g: %g vs %g\n", Lb, eps, r.E, Ej); }
+                // dE of single flips and strips vs brute force in the J1-J2 model
+                int x = g.below(Lb), y = g.below(Lb);
+                double d = J.dE_single(tau, x, y);
+                auto t2 = tau; t2[J.id(x, y)] = -t2[J.id(x, y)];
+                total++; if (!near(d, J.energy(t2) - J.energy(tau))) { bad++; if (getenv("DBG")) printf("single Lb=%d\n", Lb); }
+                int ori = g.below(2), x0 = g.below(Lb), w = 1 + g.below(Lb - 1);
+                double ds = J.dE_strip(tau, ori, x0, w);
+                auto t3 = tau; J.apply_strip(t3, ori, x0, w);
+                total++; if (!near(ds, J.energy(t3) - J.energy(tau))) { bad++; if (getenv("DBG")) printf("strip Lb=%d ori=%d x0=%d w=%d\n", Lb, ori, x0, w); }
+                // the breathing-model strip flip has the same dE as the J1-J2 strip flip
+                double dm = M.dE_strip(r, ori, x0, w);
+                total++; if (!near(dm, ds)) { bad++; if (getenv("DBG")) printf("modelstrip Lb=%d\n", Lb); }
+            }
+        }
+    }
+    CHECK(bad == 0, "%d of %d mismatches in the J1-J2 mapping", bad, total);
+    printf("  %d comparisons, %d mismatches\n", total, bad);
+}
+
 int main(int argc, char** argv) {
     std::string only = argc > 1 ? argv[1] : "";
     if (only.empty() || only == "T1") test_eps_term();
@@ -347,6 +388,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "T3") test_dE_vs_bruteforce();
     if (only.empty() || only == "T4") test_enumeration();
     if (only.empty() || only == "T5") test_detailed_balance();
+    if (only.empty() || only == "T6") test_j1j2_mapping();
     printf(nfail ? "\n%d FAILURES\n" : "\nALL TESTS PASSED\n", nfail);
     return nfail != 0;
 }
