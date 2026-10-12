@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 
     for (long it = 0; it < neq + nmeas; it++) {
         long it0 = it - neq;                                  // sweeps after the warm-up
-        bool measuring = it0 >= neq && ((it0 - neq) % meas_every == 0) && rec < (long)nbl * blen;
+        bool measuring = it0 >= 0 && (it0 % meas_every == 0) && rec < (long)nbl * blen;
         std::vector<Ice::Obs> obs(nrep);
         std::vector<int> ncnow(nrep);
 #pragma omp parallel for schedule(static)

@@ -1,0 +1,9 @@
+{
+ "model": "F", "L": 64, "neq": 20000, "nmeas": 40000, "meas_every": 1, "series_every": 100, "nblocks": 20, "blocklen": 2000, "seed": 11, "init": "rowrand", "commit": "unknown", "seconds": 35.7560841,
+ "u": [0.693147181],
+ "swap_acc": [],
+ "loops_per_sweep": [73],
+ "mean_loop_len": [227.332235],
+ "aborted_fraction": [0.333203288],
+ "Q_sign_switches_per_config": [0]
+}

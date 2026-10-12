@@ -21,7 +21,11 @@ def load(prefix):
     meta = json.load(open(prefix + ".meta.json"))
     raw = np.genfromtxt(prefix + ".blocks.csv", delimiter=",", skip_header=1)
     nb, nu = meta["nblocks"], len(meta["u"])
-    return meta, raw[:, 3:].reshape(nb, nu, len(NAMES))
+    B = raw[:, 3:].reshape(nb, nu, len(NAMES))
+    # The production runs (data/prod) were made with a driver bug that started the measurement only after 2*neq sweeps, so
+    # the last blocks were never filled (they hold garbage ~1e-309): drop them (the filled blocks are correct block averages).
+    keep = np.abs(B[:, :, FI["nc"]]).sum(axis=1) > 1e-3   # unfilled blocks hold uninitialised memory (~1e-309), not exact zeros
+    return meta, B[keep]
 
 
 def collect(datadir, L):
