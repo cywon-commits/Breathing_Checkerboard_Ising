@@ -52,12 +52,13 @@ int main(int argc, char** argv) {
     int nbl = (int)(nrec / blen);
     std::vector<double> acc(nrep * NF, 0.0), blocks;
     std::vector<float> series;
-    long rec = 0, inblock = 0, warm = 200;   // warm-up sweeps (not counted in neq)
+    long rec = 0, inblock = 0, warm = std::max(200L, neq / 2);   // nloops adapts during the first `warm` sweeps (running mean loop length), then is frozen
+    std::vector<double> csteps(nrep, 0.0); std::vector<long> cloops(nrep, 0);
     auto t0 = std::chrono::steady_clock::now();
     const int maxsteps = 200 * M.N;
 
-    for (long it = 0; it < warm + neq + nmeas; it++) {
-        long it0 = it - warm;                                  // sweeps after the warm-up
+    for (long it = 0; it < neq + nmeas; it++) {
+        long it0 = it - neq;                                  // sweeps after the warm-up
         bool measuring = it0 >= neq && ((it0 - neq) % meas_every == 0) && rec < (long)nbl * blen;
         std::vector<Ice::Obs> obs(nrep);
         std::vector<int> ncnow(nrep);
@@ -72,16 +73,11 @@ int main(int argc, char** argv) {
                 lps++;
             }
             lensum[t] += steps; loopcnt[t] += lps; abortcnt[t] += ab;
+            if (it < warm) { csteps[t] += steps; cloops[t] += lps; nloops[t] = std::max(1, (int)std::ceil(M.N / std::max(1.0, csteps[t] / std::max(1L, cloops[t])))); }
             ncnow[t] = M.count_c(spins[c].data(), isF);
             if (measuring) obs[t] = M.measure(spins[c].data());
         }
-        if (it == warm - 1) {   // fix the number of loops per sweep (mean traversed edges ~ N) after a short warm-up
-            for (int t = 0; t < nrep; t++) {
-                double mean = lensum[t] / std::max(1L, loopcnt[t]);
-                nloops[t] = std::max(1, (int)std::ceil(M.N / std::max(1.0, mean)));
-            }
-            std::fill(lensum.begin(), lensum.end(), 0.0); std::fill(loopcnt.begin(), loopcnt.end(), 0L); std::fill(abortcnt.begin(), abortcnt.end(), 0L);
-        }
+        if (it == warm - 1) { std::fill(lensum.begin(), lensum.end(), 0.0); std::fill(loopcnt.begin(), loopcnt.end(), 0L); std::fill(abortcnt.begin(), abortcnt.end(), 0L); }
         if (measuring) {
             for (int t = 0; t < nrep; t++) {
                 const Ice::Obs& o = obs[t];
